@@ -10,8 +10,8 @@ library(sva)
 library(crayon)
 
 
+cancers <- c('kich','blca','brca','cesc','gbm','hnsc','kirp','lgg','lihc','luad','lusc','prad','sarc','pcpg','paad','tgct','ucec','ov','skcm','dlbc','kirc','acc','meso','thca','uvm','ucs','thym','esca','stad','read','coad','chol')
 
-cancers <- c('sarc','pcpg','paad')
 baseDir = '~/Desktop/TIMER'
 
 list <- structure(NA,class="result")
@@ -355,7 +355,6 @@ for(cc in cancers) {
 
 
   cancer.geneExpression <- LoadCancerGeneExpression(cancer=cc)
-
   cancer.tumorPurity <- LoadCancerTumorPurity(cancer=cc)
 
   immune <- LoadImmuneGeneExpression()

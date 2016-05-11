@@ -5,20 +5,12 @@ baseDir = '~/Desktop/TIMER'
 cancer.expFile <- args[1]
 cancer.category <- args[2]
 
-cancers.available <- c('sarc','pcpg','paad','tgct','meso','uvm','thym','esca','chol')
+cancers.available <- c('kich', 'blca', 'brca', 'cesc', 'gbm', 'hnsc', 'kirp', 'lgg', 'lihc', 'luad', 'lusc', 'prad', 'sarc', 'pcpg', 'paad', 'tgct', 'ucec', 'ov', 'skcm', 'dlbc', 'kirc', 'acc', 'meso', 'thca', 'uvm', 'ucs', 'thym', 'esca', 'stad', 'read', 'coad', 'chol')
+
 
 if (!(cancer.category %in% cancers.available)) {
   stop('unknown cancers')
 }
-
-gene.selected.marker.path <- paste(baseDir,
-                        '/data/precalculated/genes_', cancer.category, '.RData',
-                        sep='')
-gene.selected.marker <- get(load(gene.selected.marker.path))
-immune.agg.median <- get(load(paste(baseDir,
-                                    '/data/precalculated/immune_median.RData',
-                                    sep='')))
-
 
 
 ##----- Constrained regression method implemented in Abbas et al., 2009 -----##
@@ -72,15 +64,23 @@ ParseInputExpression <- function(path) {
   ret <- read.csv(path, sep='\t', row.names=1)
   ret <- as.matrix(ret)
   mode(ret) <- 'numeric'
-
   ret <- ConvertRownameToLoci(ret)
   return(ret)
 }
+
+
+gene.selected.marker.path <- paste(baseDir,
+                        '/data/precalculated/genes_', cancer.category, '.RData',
+                        sep='')
+gene.selected.marker <- get(load(gene.selected.marker.path))
+immune.agg.median <- get(load(paste(baseDir,
+                                    '/data/precalculated/immune_median.RData',
+                                    sep='')))
 
 cancer.expression <- ParseInputExpression(cancer.expFile)
 
 XX = immune.agg.median[gene.selected.marker, c(-4)]
 YY = cancer.expression[gene.selected.marker, ]
 
-a <- GetFractions.Abbas(XX, YY)
-print(a)
+fractions <- GetFractions.Abbas(XX, YY)
+print(fractions)
