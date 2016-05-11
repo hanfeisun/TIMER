@@ -119,29 +119,31 @@ LoadImmuneGeneExpression <- function() {
   return(list(genes=curated.ref.genes, celltypes=curated.cell.types))
 }
 
-##----- function to preprocess the reference dataset, not necessary if the processed data "curated.ref.genes.Rdata" is available -----##
+
 ConvertImmuneProbeToRefgene <- function(curated.ref){
+  ##----- function to preprocess the reference dataset, not necessary if the processed data "curated.ref.genes.Rdata" is available -----##
   tmpDD <- data.frame(curated.ref)
   tmpDD <- tmpDD[order(rownames(tmpDD)), ]
-  ## NOTE: 给这些免疫基因表达数据, 按照基因名字排序
+  ## sort the immune expression data by rownames
+
   colnames(tmpDD) <- gsub('\\.', '_', colnames(tmpDD))
-  ## NOTE: 给样本名重命名
   genes <- sapply(strsplit(rownames(tmpDD), ';'), function(x) x[[1]])
-  ## NOTE: 去掉探针名, 只保留基因名
+  ## remove the probe ID, only keep gene names
+
   tmpDD <- cbind(genes, tmpDD)
   tmpDD <- tmpDD[order(genes), ]
-  ## NOTE: 再按照基因名排序
+  ## sort by gene names
+
   tmp0 <- c()
-
   cnt <- 0
-
-  print(dim(tmpDD))
   for(i in colnames(tmpDD)[2:ncol(tmpDD)]){
-    ## NOTE: 从第2列开始, 因为第1列是基因名
+    ## start from the second column (the first column is gene information)
+
     print(cnt)
     print(i)
     tmp <- sqldf(paste('select max(', i, ') from tmpDD group by genes', sep <- ''))
-    ## NOTE: 因为有时候一个基因对应多个探针, 只取多个探针中的最大值
+    ## select the maximum probe expression level when a gene has multiple probes
+
     if(length(tmp0) == 0) tmp0 <- tmp else tmp0 <- cbind(tmp0, tmp)
     cnt <- cnt + 1
   }
@@ -276,26 +278,28 @@ RemoveBatchEffect <- function(cancer.exp, immune.exp, immune.cellType) {
 GetPurityGenes <- function(dd, AGP, thr.p=0.05, thr.c=0, mode='env'){
   tmp.ss <- intersect(colnames(dd), rownames(AGP))
   if(length(tmp.ss)==0){
-    ## NOTE: 如果不对, 就在做一遍getID
+    ## TODO: check whether this paragraph is necessary
     colnames(dd) <- getID(colnames(dd))
     tmp.ss <- intersect(colnames(dd), rownames(AGP))
   }
+
   tmp.dd <- dd[, tmp.ss]
-  ## NOTE: 提取交集基因在癌症中表达
+
+
+  ## 's' means Spearman Correlation
   tmp <- lapply(rownames(tmp.dd),
                 function(x) {
                   cor.test(tmp.dd[x, ],
                            as.numeric(AGP[colnames(tmp.dd), 2]),
                            method='s')})
 
-
-  ## NOTE: 求spearman相关性
   tmp.pp <- sapply(tmp, function(x)x$p.value)
   tmp.cor <- sapply(tmp, function(x)x$estimate)
   names(tmp.pp) <- names(tmp.cor) <- rownames(dd)
-  if (mode=='env') {
+
+  if (mode == 'env') {
     geneNames <- names(which(tmp.pp <=thr.p&tmp.cor < thr.c))
-  } else if (mode=='tumor') {
+  } else if (mode == 'tumor') {
     geneNames <- names(which(tmp.pp <=thr.p&tmp.cor > thr.c))
   } else {
     stop("invalid mode for purity-based gene selection")
@@ -306,7 +310,6 @@ GetPurityGenes <- function(dd, AGP, thr.p=0.05, thr.c=0, mode='env'){
 ##----- remove outlier genes whose expression may drive the colinearity of similar covariates in the regression -----##
 RemoveOutliers <- function(vv, ref.dd, thr.q=0.99){
   ## removes upper thr.q quantile for every reference feature
-  ## NOTE: R里面负的index就是要remove的
   remove.vv=c()
   for(i in 1:ncol(ref.dd)){
     tmp=quantile(ref.dd[vv,i],thr.q)[1]
