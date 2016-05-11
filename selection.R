@@ -4,11 +4,14 @@
 ## Select genes whose expression levels are negatively correlated with tumor purity,
 ## Select them because they are informative to deconvolve immune calls in the tumor tissue
 
-
+options(warn=-1)
 library(sqldf)
 library(sva)
+library(crayon)
 
-cancers <- c('sarc','pcpg','paad','tgct','meso','uvm','thym','esca','chol')
+
+
+cancers <- c('sarc','pcpg','paad')
 baseDir = '~/Desktop/TIMER'
 
 list <- structure(NA,class="result")
@@ -362,7 +365,7 @@ for(cc in cancers) {
 
   immune.markerGene <- LoadImmuneMarkerGene()
 
-
+  cat(green(paste("## Removing the batch effect of", cc, '\n')))
   list[cancer.expNorm, immune.expNorm, immune.expNormMedian] <-
     RemoveBatchEffect(cancer.geneExpression, immune.geneExpression, immune.cellTypes)
 
