@@ -1,0 +1,7 @@
+1. Make baseDir flexible
+2. Refactor common function into a separate R file
+3. Upload necessary files, including:
+(1) precalculated immune cell aggregated expression data
+(2) cancer-specific immune cell marker gene
+(3) test dataset from TCGA
+
