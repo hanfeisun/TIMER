@@ -4,14 +4,15 @@ script.name <- sub(file.arg.name, "", args[grep(file.arg.name, args)])
 script.basename <- dirname(script.name)
 
 baseDir = script.basename
-print(args)
+source(paste(baseDir, '/utils.R', sep=''))
+
 args <- commandArgs(trailingOnly = TRUE)
 cancer.expFile <- args[1]
 cancer.category <- args[2]
 
-cancers.available <- c('kich', 'blca', 'brca', 'cesc', 'gbm', 'hnsc', 'kirp', 'lgg', 
+cancers.available <- c('kich', 'blca', 'brca', 'cesc', 'gbm', 'hnsc', 'kirp', 'lgg',
                        'lihc', 'luad', 'lusc', 'prad', 'sarc', 'pcpg', 'paad', 'tgct',
-                       'ucec', 'ov', 'skcm', 'dlbc', 'kirc', 'acc', 'meso', 'thca', 
+                       'ucec', 'ov', 'skcm', 'dlbc', 'kirc', 'acc', 'meso', 'thca',
                        'uvm', 'ucs', 'thym', 'esca', 'stad', 'read', 'coad', 'chol')
 
 
@@ -48,16 +49,16 @@ GetFractions.Abbas <- function(XX, YY, w=NA){
 
 ConvertRownameToLoci <- function(cancerGeneExpression) {
   ## Extract only the loci information for row name
-  
+
   ## Example of origin row name is 'LOC389332|389332'
   ## Coverted row name is 'LOC389332'
-  
+
   ## Args:
   ##   geneExpression: the orginal geneExpression load from .Rdata file
   ##
   ## Returns:
   ##   Modified geneExpression
-  
+
   tmp <- strsplit(rownames(cancerGeneExpression), '\\|')
   tmp <- sapply(tmp, function(x) x[[1]])
   tmp.vv <- which(nchar(tmp) > 1)
@@ -76,18 +77,29 @@ ParseInputExpression <- function(path) {
 }
 
 
-gene.selected.marker.path <- paste(baseDir,
-                                   '/data/precalculated/genes_', cancer.category, '.RData',
-                                   sep='')
-gene.selected.marker <- get(load(gene.selected.marker.path))
-immune.agg.median <- get(load(paste(baseDir,
-                                    '/data/precalculated/immune_median.RData',
-                                    sep='')))
+main <- function() {
+  gene.selected.marker.path <- paste(baseDir,
+                                     '/data/precalculated/genes_', cancer.category, '.RData',
+                                     sep='')
+  gene.selected.marker <- get(load(gene.selected.marker.path))
 
-cancer.expression <- ParseInputExpression(cancer.expFile)
+  immune <- LoadImmuneGeneExpression()
+  immune.geneExpression <- immune$genes
+  immune.cellTypes <- immune$celltypes
+  cancer.expression <- ParseInputExpression(cancer.expFile)
 
-XX = immune.agg.median[gene.selected.marker, c(-4)]
-YY = cancer.expression[gene.selected.marker, ]
+  TimerINFO(paste("Removing the batch effect of", cancer.expFile))
+  tmp <- RemoveBatchEffect(cancer.expression, immune.geneExpression, immune.cellTypes)
+  cancer.expNorm <- tmp[[1]]
+  ## immune.expNorm <- tmp[[2]]
+  immune.expNormMedian <- tmp[[3]]
 
-fractions <- GetFractions.Abbas(XX, YY)
-print(fractions)
+
+  XX = immune.expNormMedian[gene.selected.marker, c(-4)]
+  YY = cancer.expNorm[gene.selected.marker, ]
+
+  fractions <- GetFractions.Abbas(XX, YY)
+  print(fractions)
+}
+
+main()

@@ -1,5 +1,5 @@
 prec.zip:
-	zip -r prec.zip data/precalculated/
+	zip -r prec.zip data/precalculated/ data/test/
 upload_prec:prec.zip
 	scp ./prec.zip sunhf@compbio.tongji.edu.cn:~/public_html
 download_prec:
@@ -16,6 +16,9 @@ download_data:
 
 select:
 	Rscript selection.R	
+
+test:
+	Rscript regression.R ./data/test/sarc_rsem_test.txt sarc
 
 clean:
 	rm *.zip
