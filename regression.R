@@ -9,7 +9,10 @@ args <- commandArgs(trailingOnly = TRUE)
 cancer.expFile <- args[1]
 cancer.category <- args[2]
 
-cancers.available <- c('kich', 'blca', 'brca', 'cesc', 'gbm', 'hnsc', 'kirp', 'lgg', 'lihc', 'luad', 'lusc', 'prad', 'sarc', 'pcpg', 'paad', 'tgct', 'ucec', 'ov', 'skcm', 'dlbc', 'kirc', 'acc', 'meso', 'thca', 'uvm', 'ucs', 'thym', 'esca', 'stad', 'read', 'coad', 'chol')
+cancers.available <- c('kich', 'blca', 'brca', 'cesc', 'gbm', 'hnsc', 'kirp', 'lgg', 
+                       'lihc', 'luad', 'lusc', 'prad', 'sarc', 'pcpg', 'paad', 'tgct',
+                       'ucec', 'ov', 'skcm', 'dlbc', 'kirc', 'acc', 'meso', 'thca', 
+                       'uvm', 'ucs', 'thym', 'esca', 'stad', 'read', 'coad', 'chol')
 
 
 if (!(cancer.category %in% cancers.available)) {

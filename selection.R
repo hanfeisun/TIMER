@@ -4,7 +4,6 @@
 ## Select genes whose expression levels are negatively correlated with tumor purity,
 ## Select them because they are informative to deconvolve immune calls in the tumor tissue
 
-
 options(warn=-1)
 library(sqldf)
 library(sva)
@@ -16,23 +15,51 @@ script.name <- sub(file.arg.name, "", args[grep(file.arg.name, args)])
 script.basename <- dirname(script.name)
 baseDir = script.basename
 
-
 cancers <- c('kich','blca','brca','cesc','gbm','hnsc','kirp','lgg','lihc','luad','lusc','prad','sarc','pcpg','paad','tgct','ucec','ov','skcm','dlbc','kirc','acc','meso','thca','uvm','ucs','thym','esca','stad','read','coad','chol')
 
+GetCancerSampleID <- function(sID, num.res=3){
+  ## Edit TCGA ID, with the option of keeping the first num.res fields
+  
+  ## Args:
+  ##    sID: vector of original TCGA sample IDs
+  ##    num.res: how many fields to keep
+  
+  ## Return:
+  ##    Vector of sample IDs with the extracted fields
+  
+  
+  mm <- c()
+  for (id in sID) {
+    tmp <- unlist(strsplit(id, '-'))
+    if (length(tmp) == 1) {
+      tmp <- unlist(strsplit(id, '\\.'))
+    }
+    ll <- 'TCGA'
+    for (j in 2:num.res) {
+      ll <- paste(ll, tmp[j], sep='-')
+    }
+    mm <- c(mm, ll)
+  }
+  return(mm)
+}
 
-## A hack for assigning from multiple return type
-## Such as:  list[a, b] <- functionReturningTwoValues()
-## Pasted from https://stat.ethz.ch/pipermail/r-help/2004-June/053343.html
-list <- structure(NA,class="result")
-"[<-.result" <- function(x,...,value) {
-   args <- as.list(match.call())
-   args <- args[-c(1:2,length(args))]
-   length(value) <- length(args)
-   for(i in seq(along=args)) {
-     a <- args[[i]]
-     if(!missing(a)) eval.parent(substitute(a <- v,list(a=a,v=value[[i]])))
-   }
-   x
+ConvertRownameToLoci <- function(cancerGeneExpression) {
+  ## Extract only the loci information for row name
+  
+  ## Example of origin row name is 'LOC389332|389332'
+  ## Coverted row name is 'LOC389332'
+  
+  ## Args:
+  ##   geneExpression: the orginal geneExpression load from .Rdata file
+  ##
+  ## Returns:
+  ##   Modified geneExpression
+  
+  tmp <- strsplit(rownames(cancerGeneExpression), '\\|')
+  tmp <- sapply(tmp, function(x) x[[1]])
+  tmp.vv <- which(nchar(tmp) > 1)
+  rownames(cancerGeneExpression) <- tmp
+  return(cancerGeneExpression[tmp.vv,])
 }
 
 
@@ -45,8 +72,6 @@ LoadCancerGeneExpression <- function(cancer) {
   ## Returns:
   ##   The data frame of gene expression for the input cancer category 
   ##   (col for sample, row for gene)
-
-
 
   if (cancer %in% c('gbm', 'ov')) {
     geneExpression <- get(load(paste(baseDir,'/data/RNAseq/',cancer,'Affy.Rdata',
@@ -69,28 +94,46 @@ LoadCancerGeneExpression <- function(cancer) {
   return(geneExpression)
 }
 
-ConvertRownameToLoci <- function(cancerGeneExpression) {
-  ## Extract only the loci information for row name
-
-  ## Example of origin row name is 'LOC389332|389332'
-  ## Coverted row name is 'LOC389332'
-
-  ## Args:
-  ##   geneExpression: the orginal geneExpression load from .Rdata file
-  ##
-  ## Returns:
-  ##   Modified geneExpression
-
-  tmp <- strsplit(rownames(cancerGeneExpression), '\\|')
-  tmp <- sapply(tmp, function(x) x[[1]])
-  tmp.vv <- which(nchar(tmp) > 1)
-  rownames(cancerGeneExpression) <- tmp
-  return(cancerGeneExpression[tmp.vv,])
+ConvertImmuneProbeToRefgene <- function(curated.ref){
+  ##----- function to preprocess the reference dataset, not necessary if the processed data "curated.ref.genes.Rdata" is available -----##
+  immuneCuratedData <- paste(baseDir, '/data/precalculated/immune.expression.curated.RData', sep='')
+  if (file.exists(immuneCuratedData)) {
+    curated.ref.genes <- get(load(immuneCuratedData))
+    return(curated.ref.genes)
+  }
+  tmpDD <- data.frame(curated.ref)
+  tmpDD <- tmpDD[order(rownames(tmpDD)), ]
+  ## sort the immune expression data by rownames
+  
+  colnames(tmpDD) <- gsub('\\.', '_', colnames(tmpDD))
+  genes <- sapply(strsplit(rownames(tmpDD), ';'), function(x) x[[1]])
+  ## remove the probe ID, only keep gene names
+  
+  tmpDD <- cbind(genes, tmpDD)
+  tmpDD <- tmpDD[order(genes), ]
+  ## sort by gene names
+  
+  tmp0 <- c()
+  cnt <- 0
+  
+  cat(green('## Aggregating immune expression data\n'))
+  
+  for(i in colnames(tmpDD)[2:ncol(tmpDD)]){
+    ## start from the second column (the first column is gene information)
+    cat(sprintf("(%d of %d) %s\n", cnt, ncol(tmpDD) - 1 ,i))
+    tmp <- sqldf(paste('select max(', i, ') from tmpDD group by genes', sep=''))
+    ## select the maximum probe expression level when a gene has multiple probes
+    
+    if(length(tmp0) == 0) tmp0 <- tmp else tmp0 <- cbind(tmp0, tmp)
+    cnt <- cnt + 1
+  }
+  colnames(tmp0) <- colnames(tmpDD)[2:ncol(tmpDD)]
+  rownames(tmp0) <- unique(tmpDD[, 1])
+  curated.ref.genes <- tmp0
+  save(curated.ref.genes, file=immuneCuratedData)
+  return(curated.ref.genes)
 }
 
-immuneCuratedData <- paste(baseDir,
-                           '/data/precalculated/immune.expression.curated.RData',
-                           sep='')
 
 LoadImmuneGeneExpression <- function() {
   ## Load gene expression data for immune cells
@@ -126,45 +169,6 @@ LoadImmuneGeneExpression <- function() {
 }
 
 
-ConvertImmuneProbeToRefgene <- function(curated.ref){
-  ##----- function to preprocess the reference dataset, not necessary if the processed data "curated.ref.genes.Rdata" is available -----##
-
-  if (file.exists(immuneCuratedData)) {
-    curated.ref.genes <- get(load(immuneCuratedData))
-    return(curated.ref.genes)
-  }
-
-  tmpDD <- data.frame(curated.ref)
-  tmpDD <- tmpDD[order(rownames(tmpDD)), ]
-  ## sort the immune expression data by rownames
-
-  colnames(tmpDD) <- gsub('\\.', '_', colnames(tmpDD))
-  genes <- sapply(strsplit(rownames(tmpDD), ';'), function(x) x[[1]])
-  ## remove the probe ID, only keep gene names
-
-  tmpDD <- cbind(genes, tmpDD)
-  tmpDD <- tmpDD[order(genes), ]
-  ## sort by gene names
-
-  tmp0 <- c()
-  cnt <- 0
-  for(i in colnames(tmpDD)[2:ncol(tmpDD)]){
-    ## start from the second column (the first column is gene information)
-
-    print(cnt)
-    print(i)
-    tmp <- sqldf(paste('select max(', i, ') from tmpDD group by genes', sep <- ''))
-    ## select the maximum probe expression level when a gene has multiple probes
-
-    if(length(tmp0) == 0) tmp0 <- tmp else tmp0 <- cbind(tmp0, tmp)
-    cnt <- cnt + 1
-  }
-  colnames(tmp0) <- colnames(tmpDD)[2:ncol(tmpDD)]
-  rownames(tmp0) <- unique(tmpDD[, 1])
-  curated.ref.genes <- tmp0
-  save(curated.ref.genes, file=immuneCuratedata)
-  return(curated.ref.genes)
-}
 
 LoadImmuneMarkerProbe <- function () {
   ## Load immune marker probe from Abbas et al., 2005
@@ -220,31 +224,7 @@ LoadCancerTumorPurity <- function(cancer) {
   return(AGP)
 }
 
-GetCancerSampleID <- function(sID, num.res=3){
-  ## Edit TCGA ID, with the option of keeping the first num.res fields
 
-  ## Args:
-  ##    sID: vector of original TCGA sample IDs
-  ##    num.res: how many fields to keep
-
-  ## Return:
-  ##    Vector of sample IDs with the extracted fields
-
-
-  mm <- c()
-  for (id in sID) {
-    tmp <- unlist(strsplit(id, '-'))
-    if (length(tmp) == 1) {
-      tmp <- unlist(strsplit(id, '\\.'))
-    }
-    ll <- 'TCGA'
-    for (j in 2:num.res) {
-      ll <- paste(ll, tmp[j], sep='-')
-    }
-    mm <- c(mm, ll)
-  }
-  return(mm)
-}
 
 
 RemoveBatchEffect <- function(cancer.exp, immune.exp, immune.cellType) {
@@ -289,15 +269,7 @@ RemoveBatchEffect <- function(cancer.exp, immune.exp, immune.cellType) {
 ##----- function to select genes with expression values negatively correlated with tumor purity -----##
 GetPurityGenes <- function(dd, AGP, thr.p=0.05, thr.c=0, mode='env'){
   tmp.ss <- intersect(colnames(dd), rownames(AGP))
-  if(length(tmp.ss)==0){
-    ## TODO: check whether this paragraph is necessary
-    colnames(dd) <- getID(colnames(dd))
-    tmp.ss <- intersect(colnames(dd), rownames(AGP))
-  }
-
   tmp.dd <- dd[, tmp.ss]
-
-
   ## 's' means Spearman Correlation
   tmp <- lapply(rownames(tmp.dd),
                 function(x) {
@@ -374,9 +346,10 @@ for(cc in cancers) {
   immune.markerGene <- LoadImmuneMarkerGene()
 
   cat(green(paste("## Removing the batch effect of", cc, '\n')))
-  list[cancer.expNorm, immune.expNorm, immune.expNormMedian] <-
-    RemoveBatchEffect(cancer.geneExpression, immune.geneExpression, immune.cellTypes)
-
+  tmp <- RemoveBatchEffect(cancer.geneExpression, immune.geneExpression, immune.cellTypes)
+  cancer.expNorm <- tmp[[1]]
+  immune.expNorm <- tmp[[2]]
+  immune.expNormMedian <- tmp[[3]]
 
   gene.purity.neg <- GetPurityGenes(cancer.geneExpression, cancer.tumorPurity,
                                     thr.p = 0.05, thr.c = -0.2)
