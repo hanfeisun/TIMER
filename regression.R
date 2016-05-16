@@ -58,8 +58,8 @@ ParseInputExpression <- function(path) {
 
 
 help_msg = 'Usage：
-  For single run: Rscript regression2.R expFile cancer_catlogo
-  For batch run: Rscript regression2.R --batch_input=table.txt
+  For single run: Rscript regression.R expFile cancer_catlog
+  For batch run: Rscript regression.R --batch_input=table.txt
 
 '
 cat(help_msg)
