@@ -9,11 +9,14 @@ library(sqldf)
 library(sva)
 library(crayon)
 
-args <- commandArgs(trailingOnly = FALSE)
-file.arg.name <- "--file="
-script.name <- sub(file.arg.name, "", args[grep(file.arg.name, args)])
-script.basename <- dirname(script.name)
-baseDir = script.basename
+baseDir <- (function() {
+  args <- commandArgs(trailingOnly = FALSE)
+  file.arg.name <- "--file="
+  script.name <- sub(file.arg.name, "", args[grep(file.arg.name, args)])
+  script.basename <- dirname(script.name)
+  return(script.basename)
+})()
+
 
 source(paste(baseDir, '/utils.R', sep=''))
 TimerINFO('Aggregating immune expression data')
