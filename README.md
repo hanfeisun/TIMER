@@ -1,8 +1,14 @@
 STEP 1: Installing Miniconda3 if you don't have conda installed
 ---------------------------------------------------------------
+If you are using Linux or sshed into a Linux system:
 ```
 wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh
+```
+If you are using Mac locally:
+```
+wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+bash Miniconda3-latest-MacOSX-x86_64.sh
 ```
 
 Follow the commands listed on screen, press the enter key to scroll down.
