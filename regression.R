@@ -1,21 +1,4 @@
-args <- commandArgs(trailingOnly = FALSE)
-file.arg.name <- "--file="
-script.name <- sub(file.arg.name, "", args[grep(file.arg.name, args)])
-script.basename <- dirname(script.name)
-
-baseDir = script.basename
-print(args)
-args <- commandArgs(trailingOnly = TRUE)
-cancer.expFile <- args[1]
-cancer.category <- args[2]
-
-cancers.available <- c('kich', 'blca', 'brca', 'cesc', 'gbm', 'hnsc', 'kirp', 'lgg', 'lihc', 'luad', 'lusc', 'prad', 'sarc', 'pcpg', 'paad', 'tgct', 'ucec', 'ov', 'skcm', 'dlbc', 'kirc', 'acc', 'meso', 'thca', 'uvm', 'ucs', 'thym', 'esca', 'stad', 'read', 'coad', 'chol')
-
-
-if (!(cancer.category %in% cancers.available)) {
-  stop('unknown cancers')
-}
-
+#!/usr/bin/env Rscript
 
 ##----- Constrained regression method implemented in Abbas et al., 2009 -----##
 GetFractions.Abbas <- function(XX, YY, w=NA){
@@ -73,18 +56,61 @@ ParseInputExpression <- function(path) {
 }
 
 
-gene.selected.marker.path <- paste(baseDir,
-                        '/data/precalculated/genes_', cancer.category, '.RData',
-                        sep='')
-gene.selected.marker <- get(load(gene.selected.marker.path))
-immune.agg.median <- get(load(paste(baseDir,
-                                    '/data/precalculated/immune_median.RData',
-                                    sep='')))
 
-cancer.expression <- ParseInputExpression(cancer.expFile)
+help_msg = 'Usage：
+  For single run: Rscript regression2.R expFile cancer_catlogo
+  For batch run: Rscript regression2.R --batch_input=table.txt
 
-XX = immune.agg.median[gene.selected.marker, c(-4)]
-YY = cancer.expression[gene.selected.marker, ]
+'
+cat(help_msg)
 
-fractions <- GetFractions.Abbas(XX, YY)
-print(fractions)
+cancers.available <- c('kich', 'blca', 'brca', 'cesc', 'gbm', 'hnsc', 'kirp', 'lgg', 'lihc', 'luad', 'lusc', 'prad', 'sarc', 'pcpg', 'paad', 'tgct', 'ucec', 'ov', 'skcm', 'dlbc', 'kirc', 'acc', 'meso', 'thca', 'uvm', 'ucs', 'thym', 'esca', 'stad', 'read', 'coad', 'chol')
+
+args <- commandArgs(trailingOnly = FALSE)
+file.arg.name <- "--file="
+script.name <- sub(file.arg.name, "", args[grep(file.arg.name, args)])
+script.basename <- dirname(script.name)
+
+baseDir = script.basename
+#print(args)
+
+# read in args, if exists --batch_input, the script will ignore other args.
+args <- commandArgs(trailingOnly = TRUE)
+batchf_index <- grepl("--batch_input=", args)
+batch_file <- gsub("--batch_input=", "", args[batchf_index])
+
+if (length(batch_file) != 0) {
+  cancers <- as.matrix(read.table(batch_file, sep="\t"))
+} else {
+  cancers<- c(args[1], args[2])
+  dim(cancers) <- c(1, 2)
+}
+
+for (i in seq(nrow(cancers))) {
+  cancer.expFile <- cancers[i, 1]
+  cancer.category <- cancers[i, 2]
+
+  if (!(cancer.category %in% cancers.available)) {
+    stop(paste('unknown cancers:', cancer.category))
+  }
+
+  gene.selected.marker.path <- paste(baseDir,
+                          '/data/precalculated/genes_', cancer.category, '.RData',
+                          sep='')
+  gene.selected.marker <- get(load(gene.selected.marker.path))
+  immune.agg.median <- get(load(paste(baseDir,
+                                      '/data/precalculated/immune_median.RData',
+                                      sep='')))
+
+  cancer.expression <- ParseInputExpression(cancer.expFile)
+
+  XX = immune.agg.median[gene.selected.marker, c(-4)]
+  YY = cancer.expression[gene.selected.marker, ]
+
+  fractions <- GetFractions.Abbas(XX, YY)
+  print(fractions)
+
+}
+
+
+
