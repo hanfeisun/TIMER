@@ -1,3 +1,4 @@
+#!/usr/bin/env Rscript
 args <- commandArgs(trailingOnly = FALSE)
 file.arg.name <- "--file="
 script.name <- sub(file.arg.name, "", args[grep(file.arg.name, args)])
@@ -6,20 +7,24 @@ script.basename <- dirname(script.name)
 baseDir = script.basename
 source(paste(baseDir, '/utils.R', sep=''))
 
-args <- commandArgs(trailingOnly = TRUE)
-cancer.expFile <- args[1]
-cancer.category <- args[2]
-
-cancers.available <- c('kich', 'blca', 'brca', 'cesc', 'gbm', 'hnsc', 'kirp', 'lgg',
-                       'lihc', 'luad', 'lusc', 'prad', 'sarc', 'pcpg', 'paad', 'tgct',
-                       'ucec', 'ov', 'skcm', 'dlbc', 'kirc', 'acc', 'meso', 'thca',
-                       'uvm', 'ucs', 'thym', 'esca', 'stad', 'read', 'coad', 'chol')
 
 
-if (!(cancer.category %in% cancers.available)) {
-  stop('unknown cancers')
+ParseArgs <- function() {
+  args <- commandArgs(trailingOnly = TRUE)
+
+  # read in args, if exists --batch_input, the script will ignore other args.
+  tmp <- grepl("--batch_input=", args)
+  batch.file <- gsub("--batch_input=", "", args[tmp])
+
+  if (length(batch.file) == 0) {
+    cancer.expression <- args[1]
+    cancer.category <- args[2]
+  } else {
+    cancer.expression <- NULL
+    cancer.category <- NULL
+  }
+  return(list(batch = batch.file, expression = cancer.expression, category = cancer.category))
 }
-
 
 ##----- Constrained regression method implemented in Abbas et al., 2009 -----##
 GetFractions.Abbas <- function(XX, YY, w=NA){
@@ -77,29 +82,67 @@ ParseInputExpression <- function(path) {
 }
 
 
-main <- function() {
-  gene.selected.marker.path <- paste(baseDir,
-                                     '/data/precalculated/genes_', cancer.category, '.RData',
-                                     sep='')
-  gene.selected.marker <- get(load(gene.selected.marker.path))
 
+main <- function() {
+
+#   help_msg = 'Usage：
+#   For single run: Rscript regression.R expFile cancer_catlog
+#   For batch run: Rscript regression.R --batch_input=table.txt
+# '
+  # cat(help_msg)
+
+
+  cancers.available <- c('kich', 'blca', 'brca', 'cesc', 'gbm', 'hnsc', 'kirp', 'lgg',
+                         'lihc', 'luad', 'lusc', 'prad', 'sarc', 'pcpg', 'paad', 'tgct',
+                         'ucec', 'ov', 'skcm', 'dlbc', 'kirc', 'acc', 'meso', 'thca',
+                         'uvm', 'ucs', 'thym', 'esca', 'stad', 'read', 'coad', 'chol')
+
+  args <- ParseArgs()
+
+  if (!(args$category %in% cancers.available)) {
+    stop('unknown cancers')
+  }
+
+  if (length(args$batch) != 0) {
+    cancers <- as.matrix(read.table(args$batch, sep="\t"))
+  } else {
+    cancers<- c(args$expression, args$category)
+    dim(cancers) <- c(1, 2)
+  }
+
+  TimerINFO('Loading immune gene expression')
   immune <- LoadImmuneGeneExpression()
   immune.geneExpression <- immune$genes
   immune.cellTypes <- immune$celltypes
-  cancer.expression <- ParseInputExpression(cancer.expFile)
 
-  TimerINFO(paste("Removing the batch effect of", cancer.expFile))
-  tmp <- RemoveBatchEffect(cancer.expression, immune.geneExpression, immune.cellTypes)
-  cancer.expNorm <- tmp[[1]]
-  ## immune.expNorm <- tmp[[2]]
-  immune.expNormMedian <- tmp[[3]]
+  for (i in seq(nrow(cancers))) {
+    cancer.expFile <- cancers[i, 1]
+    cancer.category <- cancers[i, 2]
 
+    if (!(cancer.category %in% cancers.available)) {
+      stop(paste('unknown cancers:', cancer.category))
+    }
 
-  XX = immune.expNormMedian[gene.selected.marker, c(-4)]
-  YY = cancer.expNorm[gene.selected.marker, ]
+    gene.selected.marker.path <- paste(baseDir,
+                                       '/data/precalculated/genes_', cancer.category, '.RData',
+                                       sep='')
+    gene.selected.marker <- get(load(gene.selected.marker.path))
+    cancer.expression <- ParseInputExpression(cancer.expFile)
 
-  fractions <- GetFractions.Abbas(XX, YY)
-  print(fractions)
+    TimerINFO(paste("Removing the batch effect of", cancer.expFile))
+
+    tmp <- RemoveBatchEffect(cancer.expression, immune.geneExpression, immune.cellTypes)
+    cancer.expNorm <- tmp[[1]]
+    immune.expNormMedian <- tmp[[3]]
+
+    XX = immune.expNormMedian[gene.selected.marker, c(-4)]
+    YY = cancer.expression[gene.selected.marker, ]
+
+    fractions <- GetFractions.Abbas(XX, YY)
+    print(fractions)
+
+  }
 }
 
 main()
+
