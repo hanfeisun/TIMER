@@ -4,16 +4,25 @@
 ## Select genes whose expression levels are negatively correlated with tumor purity,
 ## Select them because they are informative to deconvolve immune calls in the tumor tissue
 
+
 options(warn=-1)
 library(sqldf)
 library(sva)
 library(crayon)
 
+args <- commandArgs(trailingOnly = FALSE)
+file.arg.name <- "--file="
+script.name <- sub(file.arg.name, "", args[grep(file.arg.name, args)])
+script.basename <- dirname(script.name)
+baseDir = script.basename
+
 
 cancers <- c('kich','blca','brca','cesc','gbm','hnsc','kirp','lgg','lihc','luad','lusc','prad','sarc','pcpg','paad','tgct','ucec','ov','skcm','dlbc','kirc','acc','meso','thca','uvm','ucs','thym','esca','stad','read','coad','chol')
 
-baseDir = '~/Desktop/TIMER'
 
+## A hack for assigning from multiple return type
+## Such as:  list[a, b] <- functionReturningTwoValues()
+## Pasted from https://stat.ethz.ch/pipermail/r-help/2004-June/053343.html
 list <- structure(NA,class="result")
 "[<-.result" <- function(x,...,value) {
    args <- as.list(match.call())
@@ -40,7 +49,6 @@ LoadCancerGeneExpression <- function(cancer) {
 
 
   if (cancer %in% c('gbm', 'ov')) {
-    cancer = 'sarc'
     geneExpression <- get(load(paste(baseDir,'/data/RNAseq/',cancer,'Affy.Rdata',
                                      sep='')))
   } else {
@@ -113,18 +121,19 @@ LoadImmuneGeneExpression <- function() {
                                  rep('Macrophage', length(Macrophage)),
                                  rep('DC', length(DC)))
 
-  if (file.exists(immuneCuratedData)) {
-    curated.ref.genes <- get(load(immuneCuratedData))
-  } else {
-    curated.ref.genes <- ConvertImmuneProbeToRefgene(curated.ref)
-  }
-
+  curated.ref.genes <- ConvertImmuneProbeToRefgene(curated.ref)
   return(list(genes=curated.ref.genes, celltypes=curated.cell.types))
 }
 
 
 ConvertImmuneProbeToRefgene <- function(curated.ref){
   ##----- function to preprocess the reference dataset, not necessary if the processed data "curated.ref.genes.Rdata" is available -----##
+
+  if (file.exists(immuneCuratedData)) {
+    curated.ref.genes <- get(load(immuneCuratedData))
+    return(curated.ref.genes)
+  }
+
   tmpDD <- data.frame(curated.ref)
   tmpDD <- tmpDD[order(rownames(tmpDD)), ]
   ## sort the immune expression data by rownames
@@ -153,7 +162,7 @@ ConvertImmuneProbeToRefgene <- function(curated.ref){
   colnames(tmp0) <- colnames(tmpDD)[2:ncol(tmpDD)]
   rownames(tmp0) <- unique(tmpDD[, 1])
   curated.ref.genes <- tmp0
-  save(curated.ref.genes, file=immuneCuratedData)
+  save(curated.ref.genes, file=immuneCuratedata)
   return(curated.ref.genes)
 }
 
@@ -341,14 +350,14 @@ for(cc in cancers) {
                         '/data/precalculated/genes_', cc, '.RData',
                         sep='')
 
-  immuneGeneMedianCalculated <- paste(baseDir,
-                                      '/data/precalculated/immune_median.RData',
-                                      sep='')
   
   ccDir = paste(baseDir, 'results', cc, sep='/')
   dir.create(ccDir, showWarnings=FALSE, recursive=TRUE)
-  setwd(ccDir)
+
+
+
   options(scipen=6)
+
 
   write(paste(cc, ' output\n'),
         file=paste(baseDir, '/results/', cc, '/output-statistics.txt', sep=''))
@@ -368,9 +377,6 @@ for(cc in cancers) {
   list[cancer.expNorm, immune.expNorm, immune.expNormMedian] <-
     RemoveBatchEffect(cancer.geneExpression, immune.geneExpression, immune.cellTypes)
 
-  if (!file.exists(immuneGeneMedianCalculated)) {
-    save(immune.expNormMedian, file=immuneGeneMedianCalculated)
-  }
 
   gene.purity.neg <- GetPurityGenes(cancer.geneExpression, cancer.tumorPurity,
                                     thr.p = 0.05, thr.c = -0.2)
@@ -404,7 +410,7 @@ for(cc in cancers) {
 
   cat("Test if immune genes are enriched for inverse correlation with purity: \n\n", file='output-statistics.txt', append=T)
 
-  save(gene.selected.marker, file=geneCalculated)
+  save(gene.selected.marker, file=geneCalculated, compress='gzip')
 
   sink(file='output-statistics.txt', append=T)
   print(

@@ -1,7 +1,11 @@
+args <- commandArgs(trailingOnly = FALSE)
+file.arg.name <- "--file="
+script.name <- sub(file.arg.name, "", args[grep(file.arg.name, args)])
+script.basename <- dirname(script.name)
+
+baseDir = script.basename
+print(args)
 args <- commandArgs(trailingOnly = TRUE)
-
-baseDir = '~/Desktop/TIMER'
-
 cancer.expFile <- args[1]
 cancer.category <- args[2]
 
