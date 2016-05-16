@@ -48,10 +48,10 @@ GetFractions.Abbas <- function(XX, YY, w=NA){
 
 ConvertRownameToLoci <- function(cancerGeneExpression) {
   ## Extract only the loci information for row name
-
+  
   ## Example of origin row name is 'LOC389332|389332'
   ## Coverted row name is 'LOC389332'
-
+  
   ## Args:
   ##   geneExpression: the orginal geneExpression load from .Rdata file
   ##
@@ -77,8 +77,8 @@ ParseInputExpression <- function(path) {
 
 
 gene.selected.marker.path <- paste(baseDir,
-                        '/data/precalculated/genes_', cancer.category, '.RData',
-                        sep='')
+                                   '/data/precalculated/genes_', cancer.category, '.RData',
+                                   sep='')
 gene.selected.marker <- get(load(gene.selected.marker.path))
 immune.agg.median <- get(load(paste(baseDir,
                                     '/data/precalculated/immune_median.RData',
