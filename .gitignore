@@ -3,7 +3,7 @@ results/
 .Rhistory
 .Rproj.user
 *.Rproj
-*.zip
+*.zip*
 .#*
 data/
 .Rdata

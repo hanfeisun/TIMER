@@ -1,0 +1,16 @@
+Package: TIMER
+Type: Package
+Version: 0.1
+Title: TIMER Pipeline for analyzing immune cell components in the tumor microenvironment
+Description: A novel computational method to analyze tumor-infiltrating immune cells
+Authors@R: c(
+    person("Bo", "Li", , "bli@jimmy.harvard.edu", c("aut", "cre")),
+    person("Jian", "Ma"),
+    person("Hanfei", "Sun")
+    )
+Depends:
+    R (>= 3.1.2)
+Imports:
+    sqldf,
+    crayon
+License: GPL-2

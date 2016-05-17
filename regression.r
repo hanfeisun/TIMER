@@ -145,8 +145,15 @@ main <- function() {
   immune <- LoadImmuneGeneExpression()
   immune.geneExpression <- immune$genes
   immune.cellTypes <- immune$celltypes
+<<<<<<< HEAD
   outlier.genes <- GetOutlierGenes(cancers)
   print(paste("Outlier genes:", paste(outlier.genes, collapse=' ')))
+=======
+  if (!dir.exists(paste(baseDir, '/results', sep=''))) {
+    dir.create(paste(baseDir, '/results', sep=''))
+  }
+  pdf(paste(baseDir, '/results/output.pdf', sep=''))
+>>>>>>> upstream/master
 
   abundance.score.matrix <- c()
   pdf(paste(baseDir, '/results/output.pdf', sep=''))

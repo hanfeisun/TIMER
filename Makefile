@@ -18,10 +18,14 @@ select:
 	Rscript selection.r
 
 test:
-	time Rscript regression.r ./data/test/sarc_rsem_test.txt sarc
-	time Rscript regression.r --batch-input=./data/test/sarc_rsem_test_batch.txt
-travis_test:download_prec
-		time Rscript regression.r ./data/test/sarc_rsem_test.txt sarc
+	Rscript regression.r ./data/test/sarc_rsem_test.txt sarc
+	Rscript regression.r --batch-input=./data/test/sarc_rsem_test_batch.txt
+
+travis:
+	make download_prec
+	make test
+
+
 clean:
 	rm *.zip
 

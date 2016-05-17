@@ -1,0 +1,8 @@
+language: r
+cache: packages
+sudo: false
+r:
+  - release
+bioc_packages:
+  - sva
+script: make travis
