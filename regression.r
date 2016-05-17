@@ -133,6 +133,9 @@ main <- function() {
   immune <- LoadImmuneGeneExpression()
   immune.geneExpression <- immune$genes
   immune.cellTypes <- immune$celltypes
+  if (!dir.exists(paste(baseDir, '/results', sep=''))) {
+    dir.create(paste(baseDir, '/results', sep=''))
+  }
   pdf(paste(baseDir, '/results/output.pdf', sep=''))
 
   for (i in seq(nrow(cancers))) {
