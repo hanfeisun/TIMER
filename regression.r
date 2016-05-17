@@ -1,5 +1,6 @@
 #!/usr/bin/env Rscript
 
+
 baseDir <- (function() {
   args <- commandArgs(trailingOnly = FALSE)
   file.arg.name <- "--file="
@@ -25,7 +26,6 @@ ParseArgs <- function() {
   }
   return(list(batch = batch.file, expression = cancer.expression, category = cancer.category))
 }
-
 
 
 ## Evaluate the code immediately so that error can be detected as early as possible
@@ -120,6 +120,18 @@ DrawQQPlot <- function(cancer.exp, immune.exp, name='') {
   mtext(name, col="gray11")
 }
 
+GetOutlierGenes <- function (cancers) {
+  ## Return a union of  outlier genes.
+  ## The top 5 expressed genes in each sample is treated as outlier here.
+  outlier.total <- c()
+  for (i in seq(nrow(cancers))) {
+    cancer.expFile <- cancers[i, 1]
+    cancer.expression <- ParseInputExpression(cancer.expFile)
+    outlier <- rownames(cancer.expression)[tail(order(cancer.expression), 5)]
+    outlier.total <- c(outlier.total, outlier)
+  }
+  return(unique(outlier.total))
+}
 
 main <- function() {
 
@@ -133,8 +145,11 @@ main <- function() {
   immune <- LoadImmuneGeneExpression()
   immune.geneExpression <- immune$genes
   immune.cellTypes <- immune$celltypes
-  pdf(paste(baseDir, '/results/output.pdf', sep=''))
+  outlier.genes <- GetOutlierGenes(cancers)
+  print(paste("Outlier genes:", paste(outlier.genes, collapse=' ')))
 
+  abundance.score.matrix <- c()
+  pdf(paste(baseDir, '/results/output.pdf', sep=''))
   for (i in seq(nrow(cancers))) {
     cancer.expFile <- cancers[i, 1]
     cancer.category <- cancers[i, 2]
@@ -143,6 +158,8 @@ main <- function() {
                                        sep='')
     gene.selected.marker <- get(load(gene.selected.marker.path))
     cancer.expression <- ParseInputExpression(cancer.expFile)
+    index <- !(row.names(cancer.expression) %in% outlier.genes)
+    cancer.expression <- cancer.expression[index, , drop=FALSE]
 
     TimerINFO(paste("Removing the batch effect of", cancer.expFile))
     DrawQQPlot(cancer.expression, immune.geneExpression, name=cancer.expFile)
@@ -161,13 +178,21 @@ main <- function() {
 
     fractions <- GetFractions.Abbas(XX, YY)
     print(fractions)
+    barplot(fractions, cex.names=0.8, names.arg=names(fractions), xlab="cell type", ylab="abundance", 
+        main=paste("Abundance estimation for", cancer.expFile))
+    box()
+
+    abundance.score.matrix <- cbind(abundance.score.matrix, fractions)
+    colnames(abundance.score.matrix)[ncol(abundance.score.matrix)] <- cancer.expFile
+
   }
 
   dev.off()
+  write.table(abundance.score.matrix, paste(baseDir, '/results/score_matrix.txt', sep=''),
+      sep="\t", quote=FALSE, row.names=TRUE, col.names=NA)
 
 
 }
 
 main()
-
 
