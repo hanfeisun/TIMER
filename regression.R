@@ -112,6 +112,14 @@ ParseInputExpression <- function(path) {
 }
 
 
+DrawQQPlot <- function(cancer.exp, immune.exp, name='') {
+  ## q-q plot by sample should look like a straight line.
+  ## Extreme values may saturate for Affy array data, but most of the data should align well.
+  qqplot(cancer.exp[,1], immune.exp[,1], xlab='Tumor Expression', ylab='Ref Expression',
+         main='Sample-Sample Q-Q plot')
+  mtext(name, col="gray11")
+}
+
 
 main <- function() {
 
@@ -125,6 +133,7 @@ main <- function() {
   immune <- LoadImmuneGeneExpression()
   immune.geneExpression <- immune$genes
   immune.cellTypes <- immune$celltypes
+  pdf(paste(baseDir, '/results/output.pdf', sep=''))
 
   for (i in seq(nrow(cancers))) {
     cancer.expFile <- cancers[i, 1]
@@ -136,18 +145,27 @@ main <- function() {
     cancer.expression <- ParseInputExpression(cancer.expFile)
 
     TimerINFO(paste("Removing the batch effect of", cancer.expFile))
+    DrawQQPlot(cancer.expression, immune.geneExpression, name=cancer.expFile)
 
     tmp <- RemoveBatchEffect(cancer.expression, immune.geneExpression, immune.cellTypes)
     cancer.expNorm <- tmp[[1]]
     immune.expNormMedian <- tmp[[3]]
 
+    DrawQQPlot(cancer.expNorm, immune.expNormMedian,
+               name=paste("After batch removing and aggregating for", cancer.expFile))
+
+
     XX = immune.expNormMedian[gene.selected.marker, c(-4)]
     YY = cancer.expNorm[gene.selected.marker, ]
 
+
     fractions <- GetFractions.Abbas(XX, YY)
     print(fractions)
-
   }
+
+  dev.off()
+
+
 }
 
 main()
