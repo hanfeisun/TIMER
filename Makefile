@@ -18,8 +18,8 @@ select:
 	Rscript selection.R
 
 test:
-	Rscript regression.R ./data/test/sarc_rsem_test.txt sarc
-	Rscript regression.R --batch-input=./data/test/sarc_rsem_test_batch.txt
+	time Rscript regression.R ./data/test/sarc_rsem_test.txt sarc
+	time Rscript regression.R --batch-input=./data/test/sarc_rsem_test_batch.txt
 clean:
 	rm *.zip
 
