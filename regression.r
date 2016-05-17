@@ -145,15 +145,13 @@ main <- function() {
   immune <- LoadImmuneGeneExpression()
   immune.geneExpression <- immune$genes
   immune.cellTypes <- immune$celltypes
-<<<<<<< HEAD
   outlier.genes <- GetOutlierGenes(cancers)
   print(paste("Outlier genes:", paste(outlier.genes, collapse=' ')))
-=======
+
   if (!dir.exists(paste(baseDir, '/results', sep=''))) {
     dir.create(paste(baseDir, '/results', sep=''))
   }
   pdf(paste(baseDir, '/results/output.pdf', sep=''))
->>>>>>> upstream/master
 
   abundance.score.matrix <- c()
   pdf(paste(baseDir, '/results/output.pdf', sep=''))
@@ -185,7 +183,7 @@ main <- function() {
 
     fractions <- GetFractions.Abbas(XX, YY)
     print(fractions)
-    barplot(fractions, cex.names=0.8, names.arg=names(fractions), xlab="cell type", ylab="abundance", 
+    barplot(fractions, cex.names=0.8, names.arg=names(fractions), xlab="cell type", ylab="abundance",
         main=paste("Abundance estimation for", cancer.expFile))
     box()
 
