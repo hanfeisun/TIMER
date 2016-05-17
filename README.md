@@ -1,3 +1,9 @@
+
+
+[![Build Status](https://travis-ci.org/hanfeisun/TIMER.svg?branch=master)](https://travis-ci.org/hanfeisun/TIMER)
+
+
+
 STEP 1: Installing Miniconda3 if you don't have conda installed
 ---------------------------------------------------------------
 If you are using Linux or sshed into a Linux system:
