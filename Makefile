@@ -15,11 +15,14 @@ download_data:
 	unzip -o data.zip
 
 select:
-	Rscript selection.R
+	Rscript selection.r
 
 test:
-	time Rscript regression.R ./data/test/sarc_rsem_test.txt sarc
-	time Rscript regression.R --batch-input=./data/test/sarc_rsem_test_batch.txt
+	time Rscript regression.r ./data/test/sarc_rsem_test.txt sarc
+	time Rscript regression.r --batch-input=./data/test/sarc_rsem_test_batch.txt
+travis_test:download_prec
+		time Rscript regression.r ./data/test/sarc_rsem_test.txt sarc
 clean:
 	rm *.zip
+
 

@@ -54,7 +54,7 @@ cancers <- (function() {
 })()
 
 
-source(paste(baseDir, '/utils.R', sep=''))
+source(paste(baseDir, '/utils.r', sep=''))
 
 ##----- Constrained regression method implemented in Abbas et al., 2009 -----##
 GetFractions.Abbas <- function(XX, YY, w=NA){

@@ -18,7 +18,7 @@ baseDir <- (function() {
 })()
 
 
-source(paste(baseDir, '/utils.R', sep=''))
+source(paste(baseDir, '/utils.r', sep=''))
 TimerINFO('Aggregating immune expression data')
 
 
