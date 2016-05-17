@@ -1,6 +1,5 @@
 #!/usr/bin/env Rscript
 
-
 baseDir <- (function() {
   args <- commandArgs(trailingOnly = FALSE)
   file.arg.name <- "--file="
@@ -26,6 +25,7 @@ ParseArgs <- function() {
   }
   return(list(batch = batch.file, expression = cancer.expression, category = cancer.category))
 }
+
 
 
 ## Evaluate the code immediately so that error can be detected as early as possible
@@ -169,4 +169,5 @@ main <- function() {
 }
 
 main()
+
 
