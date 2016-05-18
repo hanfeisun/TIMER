@@ -1,4 +1,4 @@
-README for TIMER (0.1)
+# README for TIMER (0.1)
 
 [![Build Status](https://travis-ci.org/hanfeisun/TIMER.svg?branch=master)](https://travis-ci.org/hanfeisun/TIMER)
 
