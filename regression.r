@@ -12,10 +12,16 @@ baseDir <- (function() {
 ParseArgs <- function() {
   args <- commandArgs(trailingOnly = TRUE)
   print(args)
-  # read in args, if exists --batch_input, the script will ignore other args.
+  # read in args, if exists --batch_input, the script will ignore other input args.
   tmp <- grepl("--batch-input=", args)
   batch.file <- gsub("--batch-input=", "", args[tmp])
   print(batch.file)
+  tmp <- grepl("--outdir=", args)
+  outdir <- gsub("--outdir=", "", args[tmp])
+  if (length(outdir) == 0) {
+    outdir = baseDir
+  }
+  print(outdir)
 
   if (length(batch.file) == 0) {
     cancer.expression <- args[1]
@@ -24,7 +30,7 @@ ParseArgs <- function() {
     cancer.expression <- NULL
     cancer.category <- NULL
   }
-  return(list(batch = batch.file, expression = cancer.expression, category = cancer.category))
+  return(list(outdir = outdir, batch = batch.file, expression = cancer.expression, category = cancer.category))
 }
 
 
@@ -115,7 +121,7 @@ ParseInputExpression <- function(path) {
 DrawQQPlot <- function(cancer.exp, immune.exp, name='') {
   ## q-q plot by sample should look like a straight line.
   ## Extreme values may saturate for Affy array data, but most of the data should align well.
-  qqplot(cancer.exp[,1], immune.exp[,1], xlab='Tumor Expression', ylab='Ref Expression',
+  qqplot(cancer.exp, immune.exp, xlab='Tumor Expression', ylab='Ref Expression',
          main='Sample-Sample Q-Q plot')
   mtext(name, col="gray11")
 }
@@ -127,8 +133,10 @@ GetOutlierGenes <- function (cancers) {
   for (i in seq(nrow(cancers))) {
     cancer.expFile <- cancers[i, 1]
     cancer.expression <- ParseInputExpression(cancer.expFile)
-    outlier <- rownames(cancer.expression)[tail(order(cancer.expression), 5)]
-    outlier.total <- c(outlier.total, outlier)
+    for (j in 1:ncol(cancer.expression)) {
+      outlier <- rownames(cancer.expression)[tail(order(cancer.expression[,j]), 5)]
+      outlier.total <- c(outlier.total, outlier)
+    }
   }
   return(unique(outlier.total))
 }
@@ -140,60 +148,69 @@ main <- function() {
 #   For batch run: Rscript regression.R --batch_input=table.txt
 # '
   # cat(help_msg)
+  args <- ParseArgs()
 
   TimerINFO('Loading immune gene expression')
   immune <- LoadImmuneGeneExpression()
   immune.geneExpression <- immune$genes
   immune.cellTypes <- immune$celltypes
-  outlier.genes <- GetOutlierGenes(cancers)
+  outlier.genes <- sort(GetOutlierGenes(cancers))
   print(paste("Outlier genes:", paste(outlier.genes, collapse=' ')))
 
-  if (!dir.exists(paste(baseDir, '/results', sep=''))) {
-    dir.create(paste(baseDir, '/results', sep=''))
+  dir.create(args$outdir, showWarnings = FALSE, recursive = TRUE)
+  if (!dir.exists(paste(args$outdir, '/results', sep=''))) {
+    dir.create(paste(args$outdir, '/results', sep=''))
   }
-  pdf(paste(baseDir, '/results/output.pdf', sep=''))
 
   abundance.score.matrix <- c()
-  pdf(paste(baseDir, '/results/output.pdf', sep=''))
-  for (i in seq(nrow(cancers))) {
+  pdf(paste(args$outdir, '/results/output.pdf', sep=''))
+  for (i in 1:nrow(cancers)) {
     cancer.expFile <- cancers[i, 1]
     cancer.category <- cancers[i, 2]
     gene.selected.marker.path <- paste(baseDir,
                                        '/data/precalculated/genes_', cancer.category, '.RData',
                                        sep='')
-    gene.selected.marker <- get(load(gene.selected.marker.path))
     cancer.expression <- ParseInputExpression(cancer.expFile)
     index <- !(row.names(cancer.expression) %in% outlier.genes)
     cancer.expression <- cancer.expression[index, , drop=FALSE]
+    cancer.colnames <- colnames(cancer.expression)
 
     TimerINFO(paste("Removing the batch effect of", cancer.expFile))
-    DrawQQPlot(cancer.expression, immune.geneExpression, name=cancer.expFile)
+    for (j in 1:length(cancer.colnames)) {
+      DrawQQPlot(cancer.expression[,j], immune.geneExpression[,1], name=cancer.colnames[j])
+    }
 
     tmp <- RemoveBatchEffect(cancer.expression, immune.geneExpression, immune.cellTypes)
     cancer.expNorm <- tmp[[1]]
     immune.expNormMedian <- tmp[[3]]
 
-    DrawQQPlot(cancer.expNorm, immune.expNormMedian,
-               name=paste("After batch removing and aggregating for", cancer.expFile))
+    for (j in 1:length(cancer.colnames)) {
+      DrawQQPlot(cancer.expNorm[,j], immune.expNormMedian[,1],
+               name=paste("After batch removing and aggregating for", cancer.colnames[j]))
+    }
 
 
+    gene.selected.marker <- get(load(gene.selected.marker.path))
+    gene.selected.marker <- intersect(gene.selected.marker, row.names(cancer.expNorm))
     XX = immune.expNormMedian[gene.selected.marker, c(-4)]
-    YY = cancer.expNorm[gene.selected.marker, ]
+    YY = cancer.expNorm[gene.selected.marker, , drop=FALSE]
 
+    for (j in 1:length(cancer.colnames)) {
+      fractions <- GetFractions.Abbas(XX, YY[,j])
+      print (paste("Fractions for", cancer.expFile, cancer.colnames[j]))
+      print (fractions)
+      barplot(fractions, cex.names=0.8, names.arg=names(fractions), xlab="cell type", ylab="abundance",
+          main=paste("Abundance estimation for", cancer.colnames[j]))
+      box()
 
-    fractions <- GetFractions.Abbas(XX, YY)
-    print(fractions)
-    barplot(fractions, cex.names=0.8, names.arg=names(fractions), xlab="cell type", ylab="abundance",
-        main=paste("Abundance estimation for", cancer.expFile))
-    box()
-
-    abundance.score.matrix <- cbind(abundance.score.matrix, fractions)
-    colnames(abundance.score.matrix)[ncol(abundance.score.matrix)] <- cancer.expFile
+      abundance.score.matrix <- cbind(abundance.score.matrix, fractions)
+      colnames(abundance.score.matrix)[ncol(abundance.score.matrix)] <- cancer.colnames[j]
+    }
 
   }
 
   dev.off()
-  write.table(abundance.score.matrix, paste(baseDir, '/results/score_matrix.txt', sep=''),
+  write.table(abundance.score.matrix, paste(args$outdir, '/results/score_matrix.txt', sep=''),
       sep="\t", quote=FALSE, row.names=TRUE, col.names=NA)
 
 
