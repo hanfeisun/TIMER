@@ -121,9 +121,16 @@ ParseInputExpression <- function(path) {
 DrawQQPlot <- function(cancer.exp, immune.exp, name='') {
   ## q-q plot by sample should look like a straight line.
   ## Extreme values may saturate for Affy array data, but most of the data should align well.
-  qqplot(cancer.exp, immune.exp, xlab='Tumor Expression', ylab='Ref Expression',
+  qq <- qqplot(cancer.exp, immune.exp, xlab='Tumor Expression', ylab='Ref Expression',
          main='Sample-Sample Q-Q plot')
   mtext(name, col="gray11")
+
+  # get part of the points for fit linear, remove bottom 40%, and top 10%
+  start <- 0.4 * length(qq$x)
+  end <- 0.9 * length(qq$x)
+  qq.sub <- list(x=qq$x[start:end], y=qq$y[start:end])
+  fit <-lm(y ~ x, data=qq.sub)
+  abline(fit, col="blue")
 }
 
 GetOutlierGenes <- function (cancers) {
