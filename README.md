@@ -75,5 +75,5 @@ make test
 
 ## Usage
 
-Placeholder
+This tool has been integrated into [VIPER](https://bitbucket.org/cfce/viper) pipeline. See the usage at VIPER's page.
 
