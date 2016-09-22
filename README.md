@@ -5,7 +5,7 @@
 
 ## Introduction
 
-TIMER is a tool for systematical evaluations of the clinical impact of different immune cells in diverse cancer types. The Web interface can be accesses [here](http://cistrome.org/TIMER/). 
+TIMER is a tool for systematical evaluations of the clinical impact of different immune cells in diverse cancer types. The Web interface can be accesses [here](http://cistrome.org/TIMER/). The approach can be found in [this paper](http://liulab.dfci.harvard.edu/publications/GenomeBiol16_174.pdf).
 
 ## Note
 
