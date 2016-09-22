@@ -9,7 +9,7 @@ TIMER is a tool for systematical evaluations of the clinical impact of different
 
 ## Note
 
-This tool has been merged into the [viper](https://bitbucket.org/cfce/viper) RNA-seq pipeline as a module to analysis immunology information. Thus this repository is deprecated now. 
+This tool has been merged into the [VIPER](https://bitbucket.org/cfce/viper) RNA-seq pipeline as a module to analysis immunology information. Thus this repository is deprecated now. 
 
 ## Install
 
