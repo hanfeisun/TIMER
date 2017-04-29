@@ -61,9 +61,8 @@ source deactivate
 ### STEP 3: Download the data for TIMER
 
 Download the reference expression data of immune cells and the marker immune gene in different cancer types.
-```
-make download_prec
-```
+
+https://www.dropbox.com/s/qiwcfdnx1xp90j8/prec.zip?dl=0
 
 ### STEP 4: Test if the tool works well
 
@@ -76,4 +75,5 @@ make test
 ## Usage
 
 This tool has been integrated into [VIPER](https://bitbucket.org/cfce/viper) pipeline. See the usage at VIPER's page.
+
 
